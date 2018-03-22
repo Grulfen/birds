@@ -18,6 +18,8 @@ keras = "*"
 scikit-learn = "*"
 pydub = "*"
 pytest = "*"
+requests = "*"
+"beautifulsoup4" = "*"
 
 
 [requires]
