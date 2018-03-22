@@ -1,27 +1,21 @@
 [[source]]
-
 verify_ssl = true
 url = "https://pypi.python.org/simple"
 name = "pypi"
 
-
 [dev-packages]
 
-
-
 [packages]
-
 ipython = "*"
 seaborn = "*"
 numpy = "*"
-keras = "*"
+Keras = "*"
 scikit-learn = "*"
 pydub = "*"
 pytest = "*"
 requests = "*"
 "beautifulsoup4" = "*"
-
+neovim = "*"
 
 [requires]
-
 python_version = "3.5"
