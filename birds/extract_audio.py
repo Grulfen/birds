@@ -23,6 +23,13 @@ def surrounding_of_max_value(samples: Sequence[int],
     return min_sample, max_sample
 
 
+def frame_to_ms(frame: int, framerate: int, channels: int) -> int:
+    """ Convert frame number to its corresponding millisecond """
+    second = float(frame) / (float(framerate) * channels)
+    ms = second * 1000
+    return int(ms)
+
+
 def loudest_two_seconds(segment: AudioSegment) -> AudioSegment:
     """ Return a two second AudioSegment centered around the loudest sample """
     # samples: list of frames
@@ -31,21 +38,21 @@ def loudest_two_seconds(segment: AudioSegment) -> AudioSegment:
     # frames_in_sec : frames/sec
     frames_in_sec = int(segment.frame_count(ms=1000)) * segment.channels
 
-    # lower_idx, upper_idx : frame
     lower_idx, upper_idx = surrounding_of_max_value(samples, frames_in_sec)
-    
-    # lower_idx, upper_idx : s
-    lower_idx, upper_idx = (int(lower_idx / (segment.frame_rate * segment.channels)),
-                            int(upper_idx / (segment.frame_rate * segment.channels)))
-    # lower_idx, upper_idx : ms
-    lower_idx, upper_idx = (lower_idx * 1000,
-                            upper_idx * 1000)
 
-    assert lower_idx < len(segment), ("lower sample should be which ms",
-                                      "to start the audio from")
-    assert upper_idx < len(segment), ("upper sample should be which ms",
-                                      "to stop the audio from")
-    assert 1900 < (upper_idx - lower_idx) < 2100
+    # lower_idx, upper_idx : s
+    lower_idx = frame_to_ms(lower_idx, segment.frame_rate, segment.channels)
+    upper_idx = frame_to_ms(upper_idx, segment.frame_rate, segment.channels)
+
+    assert lower_idx < len(segment), (
+        "lower sample ({}) should be which ms"
+        "to start the audio from").format(lower_idx)
+    assert upper_idx < len(segment), (
+        "upper sample ({}) should be which ms"
+        "to stop the audio from").format(upper_idx)
+    assert 1990 < (upper_idx - lower_idx) < 2010, (
+        "Difference between cutoff samples ({}) "
+        "should be less than 2000").format(upper_idx - lower_idx)
 
     return segment[lower_idx: upper_idx]
 

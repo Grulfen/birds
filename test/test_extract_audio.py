@@ -1,3 +1,4 @@
+""" Tests for audio extraction """
 from birds import extract_audio
 
 from pytest import raises
@@ -45,3 +46,14 @@ class TestSurroundingOfMaxValue:
         surrounding = extract_audio.surrounding_of_max_value(
             [0, 3, 2], 0)
         assert surrounding == (1, 2)
+
+
+class TestFrameToMs:
+
+    def test_one_channel(self):
+        assert extract_audio.frame_to_ms(100, framerate=100, channels=1) == 1000
+        assert extract_audio.frame_to_ms(10, framerate=100, channels=1) == 100
+
+    def test_two_channels(self):
+        assert extract_audio.frame_to_ms(100, framerate=100, channels=2) == 500
+        assert extract_audio.frame_to_ms(10, framerate=100, channels=2) == 50
