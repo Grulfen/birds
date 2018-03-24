@@ -1,7 +1,6 @@
 """ For extracting the intersting parts of one audio sample """
 
 from typing import Sequence, Tuple
-
 from pydub import AudioSegment
 
 
@@ -19,7 +18,7 @@ def surrounding_of_max_value(samples: Sequence[int],
     not enough samples."""
     max_index = find_max_index(samples)
     min_sample = max(0, max_index - surrounding)
-    max_sample = min(len(samples), max_index + surrounding + 1)
+    max_sample = min(len(samples) - 1, max_index + surrounding + 1)
     return min_sample, max_sample
 
 
@@ -36,7 +35,7 @@ def loudest_two_seconds(segment: AudioSegment) -> AudioSegment:
     samples = segment.get_array_of_samples()
 
     # frames_in_sec : frames/sec
-    frames_in_sec = int(segment.frame_count(ms=1000)) * segment.channels
+    frames_in_sec = segment.frame_rate * segment.channels
 
     lower_idx, upper_idx = surrounding_of_max_value(samples, frames_in_sec)
 
@@ -45,14 +44,11 @@ def loudest_two_seconds(segment: AudioSegment) -> AudioSegment:
     upper_idx = frame_to_ms(upper_idx, segment.frame_rate, segment.channels)
 
     assert lower_idx < len(segment), (
-        "lower sample ({}) should be which ms"
+        "lower sample ({}) should be which ms "
         "to start the audio from").format(lower_idx)
     assert upper_idx < len(segment), (
-        "upper sample ({}) should be which ms"
+        "upper sample ({}) should be which ms "
         "to stop the audio from").format(upper_idx)
-    assert 1990 < (upper_idx - lower_idx) < 2010, (
-        "Difference between cutoff samples ({}) "
-        "should be less than 2000").format(upper_idx - lower_idx)
 
     return segment[lower_idx: upper_idx]
 
