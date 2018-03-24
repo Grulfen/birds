@@ -34,26 +34,29 @@ def download_chirp(chirp_link):
 
 
 def main():
-    """ Download great tit songs """
+    """ Download bird songs """
     xeno_canto = "https://www.xeno-canto.org"
-    url = "{xeno_canto}/species/Parus-major?query=type%3Asong".format(
-        xeno_canto=xeno_canto)
-    xeno_canto_request = requests.get(url)
+    bird_urls = {"great_tit": "{}/species/Parus-major?query=type%3Asong".format(xeno_canto),
+                 "blue_tit": "{}/species/Cyanistes-caeruleus?query=type%3Asong".format(xeno_canto)}
 
-    html_soup = BeautifulSoup(xeno_canto_request.content, "html.parser")
-    chirp_links = audio_links(html_soup)
+    for bird, url in bird_urls.items():
+        # TODO: Move this to its own function
+        xeno_canto_request = requests.get(url)
 
-    max_links = 30
+        html_soup = BeautifulSoup(xeno_canto_request.content, "html.parser")
+        chirp_links = audio_links(html_soup)
 
-    for i, chirp_link in zip(range(max_links), chirp_links):
-        chirp_file = "data/great_tit/great_tit_{i}".format(i=i)
-        write_chirp(download_chirp(xeno_canto + chirp_link),
-                    chirp_file + ".mp3")
-        extract_two_loudest_seconds(chirp_file + ".mp3",
-                                    chirp_file + "_short.mp3")
-        print(".", end="")
-        sys.stdout.flush()
-        time.sleep(2)
+        max_links = 30
+
+        for i, chirp_link in zip(range(max_links), chirp_links):
+            chirp_file = "data/{bird}/{bird}_{i}".format(bird=bird, i=i)
+            write_chirp(download_chirp(xeno_canto + chirp_link),
+                        chirp_file + ".mp3")
+            extract_two_loudest_seconds(chirp_file + ".mp3",
+                                        chirp_file + "_short.mp3")
+            print(".", end="")
+            sys.stdout.flush()
+            time.sleep(2)
 
 
 if __name__ == "__main__":
