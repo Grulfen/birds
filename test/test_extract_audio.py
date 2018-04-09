@@ -35,12 +35,12 @@ class TestSurroundingOfMaxValue:
     def test_truncates_back_if_surrounding_too_big(self):
         surrounding = extract_audio.surrounding_of_max_value(
             [0, 3, 2, 7, -1], 2)
-        assert surrounding == (1, 5)
+        assert surrounding == (1, 4)
 
     def test_truncates_both_if_surrounding_too_big(self):
         surrounding = extract_audio.surrounding_of_max_value(
             [0, 3, 2], 7)
-        assert surrounding == (0, 3)
+        assert surrounding == (0, 2)
 
     def test_returns_only_max_if_surrounding_is_zero(self):
         surrounding = extract_audio.surrounding_of_max_value(
