@@ -1,7 +1,7 @@
 Stuff to do
 ===========
 
-- [ ] Only save the sample, not the whole file
+- [x] Only save the sample, not the whole file
 
 - [ ] Do fft on all sound samples
 

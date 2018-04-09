@@ -2,6 +2,7 @@
 
 from typing import Sequence, Tuple
 from pydub import AudioSegment
+import io
 
 
 def find_max_index(samples: Sequence[int]) -> int:
@@ -53,11 +54,9 @@ def loudest_two_seconds(segment: AudioSegment) -> AudioSegment:
     return segment[lower_idx: upper_idx]
 
 
-def extract_two_loudest_seconds(infile: str, outfile: str):
+def extract_two_loudest_seconds(infile: io.BytesIO, outfile: str):
     """ Extract the two loudest seconds from @infile and write it to @outfile
     as a .mp3 file """
-    if not infile.endswith(".mp3"):
-        raise ValueError("Not an .mp3 file")
     sound = AudioSegment.from_mp3(infile)
     extracted_sound = loudest_two_seconds(sound)
     extracted_sound.export(outfile, format="mp3")

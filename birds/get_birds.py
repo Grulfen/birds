@@ -4,6 +4,10 @@ import time
 import requests
 from bs4 import BeautifulSoup
 from extract_audio import extract_two_loudest_seconds
+import io
+
+
+XENO_CANTO = "https://www.xeno-canto.org"
 
 
 def is_audio(link):
@@ -34,30 +38,28 @@ def download_chirp(chirp_link):
     return requests.get(chirp_link).content
 
 
+def download_chirps(bird: str, url: str, max_chirps: int):
+    xeno_canto_request = requests.get(url)
+
+    html_soup = BeautifulSoup(xeno_canto_request.content, "html.parser")
+    chirp_links = audio_links(html_soup)
+
+    for i, chirp_link in zip(range(max_chirps), chirp_links):
+        chirp_file = "data/{bird}/{bird}_{i}".format(bird=bird, i=i)
+        chirp_content = io.BytesIO(download_chirp(XENO_CANTO + chirp_link))
+        extract_two_loudest_seconds(chirp_content, chirp_file + "_short.mp3")
+        print(".", end="")
+        sys.stdout.flush()
+        time.sleep(2)
+
+
 def main():
     """ Download bird songs """
-    xeno_canto = "https://www.xeno-canto.org"
-    bird_urls = {"great_tit": "{}/species/Parus-major?query=type%3Asong".format(xeno_canto),
-                 "blue_tit": "{}/species/Cyanistes-caeruleus?query=type%3Asong".format(xeno_canto)}
+    bird_urls = {"great_tit": "{}/species/Parus-major?query=type%3Asong".format(XENO_CANTO),
+                 "blue_tit": "{}/species/Cyanistes-caeruleus?query=type%3Asong".format(XENO_CANTO)}
 
     for bird, url in bird_urls.items():
-        # TODO: Move this to its own function
-        xeno_canto_request = requests.get(url)
-
-        html_soup = BeautifulSoup(xeno_canto_request.content, "html.parser")
-        chirp_links = audio_links(html_soup)
-
-        max_links = 30
-
-        for i, chirp_link in zip(range(max_links), chirp_links):
-            chirp_file = "data/{bird}/{bird}_{i}".format(bird=bird, i=i)
-            write_chirp(download_chirp(xeno_canto + chirp_link),
-                        chirp_file + ".mp3")
-            extract_two_loudest_seconds(chirp_file + ".mp3",
-                                        chirp_file + "_short.mp3")
-            print(".", end="")
-            sys.stdout.flush()
-            time.sleep(2)
+        download_chirps(bird, url, max_chirps=30)
 
 
 if __name__ == "__main__":
