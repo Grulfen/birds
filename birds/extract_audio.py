@@ -54,6 +54,8 @@ def loudest_two_seconds(segment: AudioSegment) -> AudioSegment:
     return segment[lower_idx: upper_idx]
 
 
+# TODO: Make this return io.BytesIO or something
+# TODO: Use part of sound with highest energy or something instead
 def extract_two_loudest_seconds(infile: io.BytesIO, outfile: str):
     """ Extract the two loudest seconds from @infile and write it to @outfile
     as a .mp3 file """
