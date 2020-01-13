@@ -1,0 +1,8 @@
+seaborn
+numpy
+Keras
+scikit-learn
+pydub
+pytest
+requests
+beautifulsoup4
