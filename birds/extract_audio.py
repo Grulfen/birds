@@ -36,15 +36,15 @@ def frame_to_ms(frame: int, framerate: int, channels: int) -> int:
 
 def loudest_two_seconds(samples, sample_rate: int):
     """ Return two seconds worth of samples with the highest power """
-    return n_with_highest_power(samples, 2 * sample_rate)
+    return n_with_highest_power(samples, 2 * sample_rate)[0]
 
 
 def root_mean(samples):
     return np.mean(np.square(samples))
 
 
-def n_with_highest_power(samples: np.ndarray, n: int) -> np.ndarray:
-    """ Find the n contiguous samples (window) with highest power
+def n_with_highest_power(samples: np.ndarray, n: int) -> Tuple[np.ndarray, int]:
+    """ Find the n contiguous samples (window) with highest power, and where it starts
 
                                                    |
                                          |        ||
@@ -56,7 +56,7 @@ def n_with_highest_power(samples: np.ndarray, n: int) -> np.ndarray:
 
     assert n <= samples.size
     if n == samples.size:
-        return samples
+        return samples, 0
 
     start_of_max_window = 0
     max_power = root_mean(samples[:n])
@@ -70,7 +70,7 @@ def n_with_highest_power(samples: np.ndarray, n: int) -> np.ndarray:
             max_power = current_power
             start_of_max_window = idx + 1
 
-    return samples[start_of_max_window : start_of_max_window + n]
+    return samples[start_of_max_window : start_of_max_window + n], start_of_max_window
 
 
 def write_loudest_two_seconds_to_file(infile: str, outfile: str):
