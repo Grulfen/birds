@@ -1,7 +1,9 @@
+soundfile
 seaborn
 numpy
 Keras
 scikit-learn
-pydub
 pytest
 requests
+hypothesis
+librosa

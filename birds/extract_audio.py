@@ -1,8 +1,11 @@
 """ For extracting the intersting parts of one audio sample """
 
+import warnings
 from typing import Sequence, Tuple
-from pydub import AudioSegment
-import io
+
+import librosa
+import numpy as np
+import soundfile
 
 
 def find_max_index(samples: Sequence[int]) -> int:
@@ -12,8 +15,9 @@ def find_max_index(samples: Sequence[int]) -> int:
     return samples.index(biggest)
 
 
-def surrounding_of_max_value(samples: Sequence[int],
-                             surrounding: int) -> Tuple[int, int]:
+def surrounding_of_max_value(
+    samples: Sequence[int], surrounding: int
+) -> Tuple[int, int]:
     """ Return a tuple of lower_index and upper_index centered around @samples
     maximum value and with @surrounding samples on either side, truncated if
     not enough samples."""
@@ -30,35 +34,50 @@ def frame_to_ms(frame: int, framerate: int, channels: int) -> int:
     return int(ms)
 
 
-def loudest_two_seconds(segment: AudioSegment) -> AudioSegment:
-    """ Return a two second AudioSegment centered around the loudest sample """
-    # samples: list of frames
-    samples = segment.get_array_of_samples()
-
-    # frames_in_sec : frames/sec
-    frames_in_sec = segment.frame_rate * segment.channels
-
-    lower_idx, upper_idx = surrounding_of_max_value(samples, frames_in_sec)
-
-    # lower_idx, upper_idx : s
-    lower_idx = frame_to_ms(lower_idx, segment.frame_rate, segment.channels)
-    upper_idx = frame_to_ms(upper_idx, segment.frame_rate, segment.channels)
-
-    assert lower_idx < len(segment), (
-        "lower sample ({}) should be which ms "
-        "to start the audio from").format(lower_idx)
-    assert upper_idx < len(segment), (
-        "upper sample ({}) should be which ms "
-        "to stop the audio from").format(upper_idx)
-
-    return segment[lower_idx: upper_idx]
+def loudest_two_seconds(samples, sample_rate: int):
+    """ Return two seconds worth of samples with the highest power """
+    return n_with_highest_power(samples, 2 * sample_rate)
 
 
-# TODO: Make this return io.BytesIO or something
-# TODO: Use part of sound with highest energy or something instead
-def extract_two_loudest_seconds(infile: io.BytesIO, outfile: str):
+def root_mean(samples):
+    return np.mean(np.square(samples))
+
+
+def n_with_highest_power(samples: np.ndarray, n: int) -> np.ndarray:
+    """ Find the n contiguous samples (window) with highest power
+
+                                                   |
+                                         |        ||
+                                    ||  |||      ||||       |
+    signal:                        |||||||||....||||||.....|||..|||..
+
+    samples with max power (n=4):                ----
+    """
+
+    assert n <= samples.size
+    if n == samples.size:
+        return samples
+
+    start_of_max_window = 0
+    max_power = root_mean(samples[:n])
+    current_power = max_power
+    for idx, (outgoing_val, incoming_val) in enumerate(
+        zip(np.nditer(samples), np.nditer(samples[n:]))
+    ):
+        current_power -= np.divide(np.square(outgoing_val), n)
+        current_power += np.divide(np.square(incoming_val), n)
+        if current_power > max_power:
+            max_power = current_power
+            start_of_max_window = idx + 1
+
+    return samples[start_of_max_window : start_of_max_window + n]
+
+
+def write_loudest_two_seconds_to_file(infile: str, outfile: str):
     """ Extract the two loudest seconds from @infile and write it to @outfile
     as a .mp3 file """
-    sound = AudioSegment.from_mp3(infile)
-    extracted_sound = loudest_two_seconds(sound)
-    extracted_sound.export(outfile, format="mp3")
+    with warnings.catch_warnings():  # Silence warning about using audioread instead of soundfile
+        warnings.simplefilter("ignore")
+        samples, sample_rate = librosa.load(infile)
+    extracted_sound = loudest_two_seconds(samples, sample_rate)
+    soundfile.write(outfile, extracted_sound, sample_rate)
