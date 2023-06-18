@@ -1,5 +1,4 @@
 import wave
-
 from typing import List
 
 import numpy

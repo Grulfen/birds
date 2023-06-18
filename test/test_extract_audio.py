@@ -1,11 +1,10 @@
 """ Tests for audio extraction """
+import numpy as np
 from hypothesis import given
 from hypothesis import strategies as st
 from pytest import raises
-import numpy as np
 
 from birds import extract_audio
-
 
 # pylint:disable=no-self-use,missing-docstring,invalid-name
 
