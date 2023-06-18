@@ -21,6 +21,7 @@
         python310Packages.seaborn
         python310Packages.soundfile
         python310Packages.tensorflow
+        python310Packages.termcolor
         python310Packages.tqdm
         python310Packages.types-requests
     ];

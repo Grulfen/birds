@@ -8,6 +8,7 @@ import click
 import librosa
 import matplotlib.pyplot as plt  # type: ignore
 import numpy as np
+from termcolor import colored
 from extract_audio import write_loudest_two_seconds_to_file
 from sklearn.model_selection import train_test_split  # type: ignore
 from tensorflow import keras  # type: ignore
@@ -17,7 +18,7 @@ Spectrogram = np.ndarray
 MODEL_PATH = Path("model/latest_model")
 
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.WARNING)
 
 
 @dataclass
@@ -139,12 +140,20 @@ def main(retrain: bool, classify=Optional[Path]) -> None:
         for to_classify in classify:
             write_loudest_two_seconds_to_file(to_classify, short_path)
             chirps.append(prepare_chirp(short_path))
-    predictions = model.predict(np.array(chirps))
+    predictions = model.predict(np.array(chirps), verbose=0)
     for prediction in predictions:
-        if prediction[0] > 0.5:
-            print("great_tit")
+        if prediction[0] > 0.9:
+            print(colored("great_tit", "green"))
+        elif prediction[0] > 0.7:
+            print(colored("great_tit", "yellow"))
+        elif prediction[0] > 0.5:
+            print(colored("great_tit", "red"))
+        elif prediction[0] > 0.3:
+            print(colored("blue_tit", "red"))
+        elif prediction[0] > 0.1:
+            print(colored("blue_tit", "yellow"))
         else:
-            print("blue_tit")
+            print(colored("blue_tit", "green"))
 
 
 if __name__ == "__main__":
