@@ -1,3 +1,4 @@
+import logging
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -12,6 +13,11 @@ from sklearn.model_selection import train_test_split  # type: ignore
 from tensorflow import keras  # type: ignore
 
 Spectrogram = np.ndarray
+
+MODEL_PATH = Path("model/latest_model")
+
+
+logging.basicConfig(level=logging.INFO)
 
 
 @dataclass
@@ -83,7 +89,7 @@ def prepare_chirps() -> tuple[Data, Data, Data]:
     return training_data, test_data, validation_data
 
 
-def train():
+def train() -> keras.models.Sequential:
     training_data, test_data, validation_data = prepare_chirps()
     model = create_model()
     history, model = fit_model(model, training_data, validation_data)
@@ -98,16 +104,34 @@ def train():
     test_loss, test_accuracy = model.evaluate(
         test_data.chirps, test_data.birds, verbose=2
     )
+    model.save(MODEL_PATH)
     return model
 
 
+def get_model(retrain: bool) -> keras.models.Sequential:
+    if retrain:
+        logging.info("Retraining model")
+        return train()
+    if not MODEL_PATH.exists():
+        logging.info("No model in {MODEL_PATH}. Training a new model")
+        return train()
+    logging.info(f"Loading model from {MODEL_PATH}")
+    return keras.models.load_model(MODEL_PATH)
+
+
 @click.command()
-@click.argument(
-    "classify", type=click.Path(exists=True, path_type=Path, dir_okay=False), nargs=-1
+@click.option(
+    "--train/--no-train", "retrain", default=False, help="If set, train a new model"
 )
-def main(classify=Optional[Path]) -> None:
-    model = train()
-    if classify is None:
+@click.option(
+    "--classify",
+    type=click.Path(exists=True, path_type=Path, dir_okay=False),
+    multiple=True,
+    help="paths to birds songs that are to be classified",
+)
+def main(retrain: bool, classify=Optional[Path]) -> None:
+    model = get_model(retrain)
+    if not classify:
         return
     chirps = []
     with tempfile.TemporaryDirectory() as tmpdir:

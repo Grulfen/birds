@@ -3,6 +3,7 @@
     nativeBuildInputs = with pkgs.buildPackages; [
         python310Packages.black
         python310Packages.click
+        python310Packages.h5py
         python310Packages.hypothesis
         python310Packages.ipdb
         python310Packages.ipython
@@ -26,6 +27,7 @@
   # Workaround for broken matplotlib package
   shellHook = ''
     export TK_LIBRARY="${pkgs.tk}/lib/${pkgs.tk.libPrefix}"
+    export TF_CPP_MIN_LOG_LEVEL=1
   '';
 
 }
