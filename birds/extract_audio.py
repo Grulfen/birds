@@ -1,5 +1,6 @@
 """ For extracting the intersting parts of one audio sample """
 
+import logging
 import warnings
 from pathlib import Path
 from typing import Sequence, Tuple
@@ -55,7 +56,12 @@ def n_with_highest_power(samples: np.ndarray, n: int) -> Tuple[np.ndarray, int]:
     samples with max power (n=4):                ----
     """
 
+    if n > samples.size:
+        raise ValueError(
+            f"Too few samples to extract {n} samples. ({samples.size} samples in clip"
+        )
     assert n <= samples.size
+    # TODO: Handle short sound clips
     if n == samples.size:
         return samples, 0
 
@@ -74,12 +80,15 @@ def n_with_highest_power(samples: np.ndarray, n: int) -> Tuple[np.ndarray, int]:
     return samples[start_of_max_window : start_of_max_window + n], start_of_max_window
 
 
-def write_loudest_two_seconds_to_file(infile: Path, outfile: Path):
+def write_loudest_two_seconds_to_file(infile: Path, outfile: Path) -> None:
     """Extract the two loudest seconds from @infile and write it to @outfile
     as a .mp3 file"""
     # Silence warning about using audioread instead of soundfile
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         samples, sample_rate = librosa.load(infile)
-    extracted_sound = loudest_two_seconds(samples, int(sample_rate))
-    soundfile.write(outfile, extracted_sound, sample_rate)
+    try:
+        extracted_sound = loudest_two_seconds(samples, int(sample_rate))
+        soundfile.write(outfile, extracted_sound, sample_rate)
+    except ValueError:
+        logging.warning(f"{infile} skipped because it is shorter than 2 seconds")
