@@ -1,0 +1,7 @@
+*/__pycache__
+.direnv
+.envrc
+.hypothesis
+.ipynb_checkpoints
+.mypy_cache
+data
