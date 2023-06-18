@@ -1,15 +1,16 @@
 """ For extracting the intersting parts of one audio sample """
 
 import warnings
+from pathlib import Path
 from typing import Sequence, Tuple
 
 import librosa
 import numpy as np
-import soundfile
+import soundfile  # type: ignore
 
 
 def find_max_index(samples: Sequence[int]) -> int:
-    """ Return the index of the maximum value in samples """
+    """Return the index of the maximum value in samples"""
     biggest = max(samples)
 
     return samples.index(biggest)
@@ -18,7 +19,7 @@ def find_max_index(samples: Sequence[int]) -> int:
 def surrounding_of_max_value(
     samples: Sequence[int], surrounding: int
 ) -> Tuple[int, int]:
-    """ Return a tuple of lower_index and upper_index centered around @samples
+    """Return a tuple of lower_index and upper_index centered around @samples
     maximum value and with @surrounding samples on either side, truncated if
     not enough samples."""
     max_index = find_max_index(samples)
@@ -28,14 +29,14 @@ def surrounding_of_max_value(
 
 
 def frame_to_ms(frame: int, framerate: int, channels: int) -> int:
-    """ Convert frame number to its corresponding millisecond """
+    """Convert frame number to its corresponding millisecond"""
     second = float(frame) / (float(framerate) * channels)
     ms = second * 1000
     return int(ms)
 
 
 def loudest_two_seconds(samples, sample_rate: int):
-    """ Return two seconds worth of samples with the highest power """
+    """Return two seconds worth of samples with the highest power"""
     return n_with_highest_power(samples, 2 * sample_rate)[0]
 
 
@@ -44,7 +45,7 @@ def root_mean(samples):
 
 
 def n_with_highest_power(samples: np.ndarray, n: int) -> Tuple[np.ndarray, int]:
-    """ Find the n contiguous samples (window) with highest power, and where it starts
+    """Find the n contiguous samples (window) with highest power, and where it starts
 
                                                    |
                                          |        ||
@@ -73,11 +74,12 @@ def n_with_highest_power(samples: np.ndarray, n: int) -> Tuple[np.ndarray, int]:
     return samples[start_of_max_window : start_of_max_window + n], start_of_max_window
 
 
-def write_loudest_two_seconds_to_file(infile: str, outfile: str):
-    """ Extract the two loudest seconds from @infile and write it to @outfile
-    as a .mp3 file """
-    with warnings.catch_warnings():  # Silence warning about using audioread instead of soundfile
+def write_loudest_two_seconds_to_file(infile: Path, outfile: Path):
+    """Extract the two loudest seconds from @infile and write it to @outfile
+    as a .mp3 file"""
+    # Silence warning about using audioread instead of soundfile
+    with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         samples, sample_rate = librosa.load(infile)
-    extracted_sound = loudest_two_seconds(samples, sample_rate)
+    extracted_sound = loudest_two_seconds(samples, int(sample_rate))
     soundfile.write(outfile, extracted_sound, sample_rate)
