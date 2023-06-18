@@ -1,16 +1,19 @@
 """ Script to download bird songs """
-import sys
-import time
-import logging
 import json
+import logging
 import pathlib
+import time
+
+import click
 import requests
+from tqdm import tqdm  # type: ignore
+
 from birds.extract_audio import write_loudest_two_seconds_to_file
 
 XENO_CANTO: str = "https://www.xeno-canto.org/api/2"
 
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.WARNING)
 
 
 def download_chirp(chirp_link: str, path: pathlib.Path) -> None:
@@ -21,7 +24,6 @@ def download_chirp(chirp_link: str, path: pathlib.Path) -> None:
 
 
 def download_chirps(bird: str, url: str, max_chirps: int) -> None:
-    # TODO: Add path where to save chirps
     request = requests.get(url)
     if request.status_code != 200:
         logging.warning(f"Request to {url} returned status_code {request.status_code}")
@@ -37,15 +39,22 @@ def download_chirps(bird: str, url: str, max_chirps: int) -> None:
     logging.info(f'Found {api_data["numRecordings"]} of {bird} songs')
     logging.info(f"Using first {max_chirps} recordings")
     bird_folder = pathlib.Path(f"data/{bird}")
-    for i, recording in zip(range(max_chirps), api_data["recordings"]):
+    print(f"Downloading {bird} chirps")
+    for i, recording in tqdm(zip(range(max_chirps), api_data["recordings"])):
         long_chirp_file = bird_folder / "long" / f"{bird}_{i}_long.mp3"
-        short_chirp_file = bird_folder / "short" / f"{bird}_{i}_short.ogg"
         download_chirp(f'{recording["file"]}', long_chirp_file)
-        write_loudest_two_seconds_to_file(long_chirp_file, short_chirp_file)
-        print(".", end="")
-        sys.stdout.flush()
-        time.sleep(2)
+        time.sleep(1)
+
     print("")
+
+
+def convert_chirps(bird) -> None:
+    print(f"Converting {bird} chirps")
+    bird_folder = pathlib.Path(f"data/{bird}")
+    for long_chirp_file in tqdm((bird_folder / "long").iterdir()):
+        short_chirp_file_name = str(long_chirp_file).replace("long", "short")
+        short_chirp_file = pathlib.Path(short_chirp_file_name)
+        write_loudest_two_seconds_to_file(long_chirp_file, short_chirp_file)
 
 
 def create_folder_for_chirps(bird: str) -> None:
@@ -56,7 +65,11 @@ def create_folder_for_chirps(bird: str) -> None:
     short_sound_folder.mkdir(exist_ok=True, parents=True)
 
 
-def main():
+@click.command()
+@click.option("--num-birds", default=50)
+@click.option("--download", default=True)
+@click.option("--convert", default=True)
+def main(num_birds: int, download: bool, convert: bool) -> None:
     """Download bird songs"""
     bird_urls = {
         "great_tit": f"{XENO_CANTO}/recordings?query=parus+major type:song q:A",
@@ -65,8 +78,10 @@ def main():
 
     for bird, url in bird_urls.items():
         create_folder_for_chirps(bird)
-        print(f"Downloading {bird} chirps")
-        download_chirps(bird, url, max_chirps=50)
+        if download:
+            download_chirps(bird, url, max_chirps=num_birds)
+        if convert:
+            convert_chirps(bird)
 
 
 if __name__ == "__main__":
