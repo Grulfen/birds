@@ -1,4 +1,5 @@
 """ Script to download bird songs """
+import concurrent.futures
 import json
 import logging
 import pathlib
@@ -14,6 +15,8 @@ XENO_CANTO: str = "https://www.xeno-canto.org/api/2"
 
 
 logging.basicConfig(level=logging.WARNING)
+
+DATA_FOLDER = "data"
 
 
 def download_chirp(chirp_link: str, path: pathlib.Path) -> None:
@@ -39,7 +42,7 @@ def download_chirps(bird: str, url: str, max_chirps: int) -> None:
 
     logging.info(f'Found {api_data["numRecordings"]} of {bird} songs')
     logging.info(f"Using first {max_chirps} recordings")
-    bird_folder = pathlib.Path(f"data/{bird}")
+    bird_folder = pathlib.Path(f"{DATA_FOLDER}/{bird}")
     print(f"Downloading {bird} chirps")
     for i, recording in tqdm(
         enumerate(api_data["recordings"][:max_chirps]), total=max_chirps
@@ -58,17 +61,22 @@ def download_chirps(bird: str, url: str, max_chirps: int) -> None:
     print("")
 
 
+def convert_chirp(long_chirp_file: pathlib.Path):
+    short_chirp_file_name = str(long_chirp_file).replace("long", "short")
+    short_chirp_file = pathlib.Path(short_chirp_file_name)
+    write_loudest_two_seconds_to_file(long_chirp_file, short_chirp_file)
+
+
 def convert_chirps(bird) -> None:
     print(f"Converting {bird} chirps")
-    bird_folder = pathlib.Path(f"data/{bird}")
-    for long_chirp_file in tqdm((bird_folder / "long").iterdir()):
-        short_chirp_file_name = str(long_chirp_file).replace("long", "short")
-        short_chirp_file = pathlib.Path(short_chirp_file_name)
-        write_loudest_two_seconds_to_file(long_chirp_file, short_chirp_file)
+    bird_folder = pathlib.Path(f"{DATA_FOLDER}/{bird}")
+    paths = list((bird_folder / "long").iterdir())
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        list(tqdm(executor.map(convert_chirp, paths), total=len(paths)))
 
 
 def create_folder_for_chirps(bird: str) -> None:
-    bird_folder = pathlib.Path(f"data/{bird}")
+    bird_folder = pathlib.Path(f"{DATA_FOLDER}/{bird}")
     long_sound_folder = bird_folder / "long"
     short_sound_folder = bird_folder / "short"
     long_sound_folder.mkdir(exist_ok=True, parents=True)
@@ -76,7 +84,6 @@ def create_folder_for_chirps(bird: str) -> None:
 
 
 # TODO: Use async programming to download songs faster
-# TODO: Use multiprocessing to convert chirps faster
 @click.command()
 @click.option("--num-birds", default=50)
 @click.option("--download", default=True)

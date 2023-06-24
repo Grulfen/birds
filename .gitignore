@@ -6,3 +6,4 @@
 .mypy_cache
 data
 model/
+test_data
