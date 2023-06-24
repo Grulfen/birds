@@ -22,6 +22,9 @@ DATA_FOLDER = "data"
 def download_chirp(chirp_link: str, path: pathlib.Path) -> None:
     """Download a chirp"""
     logging.info(f"Downloading {chirp_link} to {path}")
+    if path.exists():
+        logging.info(f"{path} already exists, skipping {chirp_link}")
+        return
     with open(path, "wb") as chirp_file:
         chirp_file.write(requests.get(chirp_link).content)
 
@@ -55,7 +58,7 @@ def download_chirps(bird: str, url: str, max_chirps: int) -> None:
                 f"Sleep {time_diff} seconds to rate limit to 1 request per second"
             )
             time.sleep(1 - time_diff)
-        long_chirp_file = bird_folder / "long" / f"{bird}_{i}_long.mp3"
+        long_chirp_file = bird_folder / "long" / f'{bird}_{recording["id"]}_long.mp3'
         download_chirp(f'{recording["file"]}', long_chirp_file)
 
     print("")
