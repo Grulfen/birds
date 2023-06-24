@@ -72,11 +72,11 @@ class TestLoudestInterval:
         assert np.array_equal(
             extract_audio.n_with_highest_power(
                 np.array([0, 1, 10, 11, 12, 2, 4, 3, 2]), 3
-            )[0],
+            ),
             [10, 11, 12],
         )
 
     @given(list_and_window_size())
     def test_n_with_highest_power_has_n_items(self, lst_and_n):
         lst, n = lst_and_n
-        assert extract_audio.n_with_highest_power(lst, n)[0].size == n
+        assert extract_audio.n_with_highest_power(lst, n).size == n
