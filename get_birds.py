@@ -24,6 +24,7 @@ def download_chirp(chirp_link: str, path: pathlib.Path) -> None:
 
 
 def download_chirps(bird: str, url: str, max_chirps: int) -> None:
+    current_time = time.time()
     request = requests.get(url)
     if request.status_code != 200:
         logging.warning(f"Request to {url} returned status_code {request.status_code}")
@@ -40,10 +41,19 @@ def download_chirps(bird: str, url: str, max_chirps: int) -> None:
     logging.info(f"Using first {max_chirps} recordings")
     bird_folder = pathlib.Path(f"data/{bird}")
     print(f"Downloading {bird} chirps")
-    for i, recording in tqdm(zip(range(max_chirps), api_data["recordings"])):
+    for i, recording in tqdm(
+        enumerate(api_data["recordings"][:max_chirps]), total=max_chirps
+    ):
+        tmp_time = time.time()
+        time_diff = tmp_time - current_time
+        assert time_diff > 0
+        if time_diff < 1.0:
+            logging.info(
+                f"Sleep {time_diff} seconds to rate limit to 1 request per second"
+            )
+            time.sleep(1 - time_diff)
         long_chirp_file = bird_folder / "long" / f"{bird}_{i}_long.mp3"
         download_chirp(f'{recording["file"]}', long_chirp_file)
-        time.sleep(1)
 
     print("")
 
@@ -65,6 +75,8 @@ def create_folder_for_chirps(bird: str) -> None:
     short_sound_folder.mkdir(exist_ok=True, parents=True)
 
 
+# TODO: Use async programming to download songs faster
+# TODO: Use multiprocessing to convert chirps faster
 @click.command()
 @click.option("--num-birds", default=50)
 @click.option("--download", default=True)
