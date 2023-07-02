@@ -67,6 +67,8 @@ def download_chirps(bird: str, url: str, max_chirps: int) -> None:
 def convert_chirp(long_chirp_file: pathlib.Path):
     short_chirp_file_name = str(long_chirp_file).replace("long", "short")
     short_chirp_file = pathlib.Path(short_chirp_file_name)
+    if short_chirp_file.exists():
+        return
     write_loudest_two_seconds_to_file(long_chirp_file, short_chirp_file)
 
 
