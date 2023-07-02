@@ -94,13 +94,19 @@ def train() -> keras.models.Sequential:
     training_data, test_data, validation_data = prepare_chirps()
     model = create_model()
     history, model = fit_model(model, training_data, validation_data)
-    plt.plot(history.history["accuracy"], label="accuracy")
-    plt.plot(history.history["val_accuracy"], label="val_accuracy")
-    plt.xlabel("Epoch")
+    plt.subplot(2, 1, 1)
+    plt.plot(history.history["accuracy"], label="Train")
+    plt.plot(history.history["val_accuracy"], label="Validation")
     plt.ylabel("Accuracy")
-    plt.ylim([0.5, 1])
     plt.legend(loc="lower right")
-    plt.savefig("tjo.png")
+
+    plt.subplot(2, 1, 2)
+    plt.plot(history.history["loss"], label="Train")
+    plt.plot(history.history["val_loss"], label="Validation")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.legend(loc="lower right")
+    plt.savefig("loss.png")
 
     test_loss, test_accuracy = model.evaluate(
         test_data.chirps, test_data.birds, verbose=2
