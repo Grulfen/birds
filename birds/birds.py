@@ -20,6 +20,8 @@ MODEL_PATH = Path("model/latest_model")
 
 logging.basicConfig(level=logging.WARNING)
 
+BIRDS = ["blue_tit", "great_tit"]
+
 
 @dataclass
 class Data:
@@ -38,15 +40,16 @@ def create_model():
     model.add(keras.layers.Conv2D(64, (3, 3), activation="relu"))
 
     model.add(keras.layers.Flatten())
-    model.add(keras.layers.Dense(64, activation="relu"))
-    model.add(keras.layers.Dense(1, activation="sigmoid"))
+    model.add(keras.layers.Dense(2, activation="softmax"))
+
+    model.summary()
 
     return model
 
 
 def fit_model(model, training_data: Data, validation_data: Data):
     model.compile(
-        loss="binary_crossentropy",
+        loss="sparse_categorical_crossentropy",
         optimizer=keras.optimizers.RMSprop(learning_rate=0.001),
         metrics="accuracy",
     )
@@ -67,13 +70,10 @@ def prepare_chirp(chirp_path: Path) -> Spectrogram:
 def prepare_chirps() -> tuple[Data, Data, Data]:
     all_chirps = []
     birds = []
-    for chirp_file in Path("data/blue_tit/short/").iterdir():
-        all_chirps.append(prepare_chirp(chirp_file))
-        birds.append(0)
-
-    for chirp_file in Path("data/great_tit/short/").iterdir():
-        all_chirps.append(prepare_chirp(chirp_file))
-        birds.append(1)
+    for index, bird in enumerate(BIRDS):
+        for chirp_file in Path(f"data/{bird.lower()}/short/").iterdir():
+            all_chirps.append(prepare_chirp(chirp_file))
+            birds.append(index)
 
     chirp_train, chirp_test, birds_train, birds_test = train_test_split(
         np.array(all_chirps), np.array(birds), test_size=0.33, random_state=12
@@ -120,6 +120,14 @@ def get_model(retrain: bool) -> keras.models.Sequential:
     return keras.models.load_model(MODEL_PATH)
 
 
+def confidence_color(confidence: float) -> str:
+    if confidence > 0.9:
+        return "green"
+    if confidence > 0.7:
+        return "yellow"
+    return "red"
+
+
 @click.command()
 @click.option(
     "--train/--no-train", "retrain", default=False, help="If set, train a new model"
@@ -142,18 +150,10 @@ def main(retrain: bool, classify=Optional[Path]) -> None:
             chirps.append(prepare_chirp(short_path))
     predictions = model.predict(np.array(chirps), verbose=0)
     for prediction in predictions:
-        if prediction[0] > 0.9:
-            print(colored("great_tit", "green"))
-        elif prediction[0] > 0.7:
-            print(colored("great_tit", "yellow"))
-        elif prediction[0] > 0.5:
-            print(colored("great_tit", "red"))
-        elif prediction[0] > 0.3:
-            print(colored("blue_tit", "red"))
-        elif prediction[0] > 0.1:
-            print(colored("blue_tit", "yellow"))
-        else:
-            print(colored("blue_tit", "green"))
+        best_idx = np.argmax(prediction)
+        confidence = prediction[best_idx]
+        color = confidence_color(confidence)
+        print(colored(BIRDS[best_idx], color), prediction)
 
 
 if __name__ == "__main__":
