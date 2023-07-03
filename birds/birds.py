@@ -32,14 +32,16 @@ class Data:
 def create_model():
     model = keras.models.Sequential()
     model.add(
-        keras.layers.Conv2D(8, (3, 3), activation="relu", input_shape=(128, 87, 1))
+        keras.layers.Conv2D(6, (3, 3), activation="relu", input_shape=(128, 87, 1))
     )
     model.add(keras.layers.MaxPooling2D((2, 2)))
-    model.add(keras.layers.Conv2D(4, (3, 3), activation="relu"))
+    model.add(keras.layers.Conv2D(3, (3, 3), activation="relu"))
     model.add(keras.layers.MaxPooling2D((2, 2)))
-    model.add(keras.layers.Conv2D(4, (3, 3), activation="relu"))
+    model.add(keras.layers.Conv2D(3, (3, 3), activation="relu"))
+    model.add(keras.layers.Conv2D(3, (3, 3), activation="relu"))
 
     model.add(keras.layers.Flatten())
+    model.add(keras.layers.Dropout(rate=0.2))
     model.add(keras.layers.Dense(2, activation="softmax"))
 
     model.summary()
@@ -98,6 +100,7 @@ def train() -> keras.models.Sequential:
     plt.plot(history.history["accuracy"], label="Train")
     plt.plot(history.history["val_accuracy"], label="Validation")
     plt.ylabel("Accuracy")
+    plt.ylim(0, 1)
     plt.legend(loc="lower right")
 
     plt.subplot(2, 1, 2)
@@ -105,6 +108,7 @@ def train() -> keras.models.Sequential:
     plt.plot(history.history["val_loss"], label="Validation")
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
+    plt.ylim(0, 4)
     plt.legend(loc="lower right")
     plt.savefig("loss.png")
 
