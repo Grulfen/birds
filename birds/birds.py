@@ -8,10 +8,10 @@ import click
 import librosa
 import matplotlib.pyplot as plt  # type: ignore
 import numpy as np
-from termcolor import colored
 from extract_audio import write_loudest_two_seconds_to_file
 from sklearn.model_selection import train_test_split  # type: ignore
 from tensorflow import keras  # type: ignore
+from termcolor import colored
 
 Spectrogram = np.ndarray
 
