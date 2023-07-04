@@ -1,13 +1,13 @@
 """ Script to download bird songs """
+import asyncio
 import concurrent.futures
-import json
 import logging
 import pathlib
-import time
 
+import aiohttp
 import click
-import requests
 from tqdm import tqdm  # type: ignore
+from tqdm.asyncio import tqdm_asyncio  # type: ignore
 
 from birds.extract_audio import write_loudest_two_seconds_to_file
 
@@ -19,24 +19,62 @@ logging.basicConfig(level=logging.WARNING)
 DATA_FOLDER = "data"
 
 
-def download_chirp(chirp_link: str, path: pathlib.Path) -> None:
+class RateLimiter:
+    def __init__(self, queries_per_second: int):
+        self.loop = asyncio.get_event_loop()
+        self.last_time = None
+        self.queued_calls = 0
+        self.queries_per_second = queries_per_second
+
+    async def __aenter__(self):
+        if self.last_time is None:
+            self.last_time = self.loop.time()
+            return
+
+        self.queued_calls += 1
+        interval = 1 / self.queries_per_second
+        elapsed_time = self.loop.time() - self.last_time
+        time_to_wait = self.queued_calls * interval - elapsed_time
+        if time_to_wait > 0:
+            await asyncio.sleep(time_to_wait)
+        self.last_time = self.loop.time()
+        self.queued_calls -= 1
+
+    async def __aexit__(self, exc_type, exc, tb):
+        pass
+
+
+async def download_chirp(
+    chirp_link: str, path: pathlib.Path, rate_limiter: RateLimiter
+) -> None:
     """Download a chirp"""
-    logging.info(f"Downloading {chirp_link} to {path}")
     if path.exists():
         logging.info(f"{path} already exists, skipping {chirp_link}")
         return
-    with open(path, "wb") as chirp_file:
-        chirp_file.write(requests.get(chirp_link).content)
+    loop = asyncio.get_event_loop()
+    async with rate_limiter:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(chirp_link) as response:
+                logging.info(f"{loop.time():.2f}: -> {chirp_link} to {path}")
+                content = await response.read()
+                logging.info(f"{loop.time():.2f}: <- got response for {chirp_link}")
+                with open(path, "wb") as chirp_file:
+                    chirp_file.write(content)
 
 
-def download_chirps(bird: str, url: str, max_chirps: int) -> None:
-    current_time = time.time()
-    request = requests.get(url)
-    if request.status_code != 200:
-        logging.warning(f"Request to {url} returned status_code {request.status_code}")
-        return
+async def download_chirps(bird: str, url: str, max_chirps: int) -> None:
+    rate_limiter = RateLimiter(queries_per_second=1)
+    async with rate_limiter:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                if response.status != 200:
+                    logging.warning(
+                        f"Request to {url} returned status_code {response.status}"
+                    )
+                    return
 
-    api_data = json.loads(request.content)
+                api_data = await response.json()
+
     if int(api_data["numSpecies"]) > 1:
         logging.warning(
             f'Recordings are of {api_data["numSpecies"]}'
@@ -46,22 +84,13 @@ def download_chirps(bird: str, url: str, max_chirps: int) -> None:
     logging.info(f'Found {api_data["numRecordings"]} of {bird} songs')
     logging.info(f"Using first {max_chirps} recordings")
     bird_folder = pathlib.Path(f"{DATA_FOLDER}/{bird}")
-    print(f"Downloading {bird} chirps")
-    for i, recording in tqdm(
-        enumerate(api_data["recordings"][:max_chirps]), total=max_chirps
-    ):
-        tmp_time = time.time()
-        time_diff = tmp_time - current_time
-        assert time_diff > 0
-        if time_diff < 1.0:
-            logging.info(
-                f"Sleep {time_diff} seconds to rate limit to 1 request per second"
-            )
-            time.sleep(1 - time_diff)
+    downloads = []
+    for i, recording in enumerate(api_data["recordings"][:max_chirps]):
         long_chirp_file = bird_folder / "long" / f'{bird}_{recording["id"]}_long.mp3'
-        download_chirp(f'{recording["file"]}', long_chirp_file)
-
-    print("")
+        downloads.append(
+            download_chirp(f'{recording["file"]}', long_chirp_file, rate_limiter)
+        )
+    await tqdm_asyncio.gather(*downloads, desc=bird)
 
 
 def convert_chirp(long_chirp_file: pathlib.Path):
@@ -88,7 +117,6 @@ def create_folder_for_chirps(bird: str) -> None:
     short_sound_folder.mkdir(exist_ok=True, parents=True)
 
 
-# TODO: Use async programming to download songs faster
 @click.command()
 @click.option("--num-birds", default=50)
 @click.option("--download", default=True)
@@ -103,7 +131,7 @@ def main(num_birds: int, download: bool, convert: bool) -> None:
     for bird, url in bird_urls.items():
         create_folder_for_chirps(bird)
         if download:
-            download_chirps(bird, url, max_chirps=num_birds)
+            asyncio.run(download_chirps(bird, url, max_chirps=num_birds))
         if convert:
             convert_chirps(bird)
 
