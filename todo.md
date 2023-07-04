@@ -5,4 +5,4 @@ Stuff to do
 
 - [ ] Do fft on all sound samples
 
-- [ ] Some actual machine learning
+- [x] Some actual machine learning
