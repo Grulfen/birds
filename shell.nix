@@ -8,6 +8,7 @@
         python310Packages.hypothesis
         python310Packages.ipdb
         python310Packages.ipython
+        python310Packages.isort
         python310Packages.jupyter-core
         python310Packages.keras
         python310Packages.librosa
