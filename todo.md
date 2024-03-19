@@ -6,3 +6,5 @@ Stuff to do
 - [ ] Do fft on all sound samples
 
 - [x] Some actual machine learning
+
+- [ ] Write test for get_birds.py
